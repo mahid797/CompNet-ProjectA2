@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.IntStream;
@@ -143,6 +144,9 @@ public class DNSLookupProcess implements Closeable {
     protected void iterativeQuery(DNSQuestion question, InetAddress serverAddress) {
 
         /* TO BE COMPLETED BY THE STUDENT */
+
+
+
     }
 
     /**
@@ -180,8 +184,51 @@ public class DNSLookupProcess implements Closeable {
      */
     protected int buildQuery(ByteBuffer queryBuffer, DNSQuestion question) {
 
-        /* TO BE COMPLETED BY THE STUDENT */
-        return 0;
+
+
+        //queryBuffer = ByteBuffer.allocate(18 + question.getHostName().length());
+
+        short randomID = (short)random.nextInt(39321);
+
+        queryBuffer.putShort(randomID);
+
+        queryBuffer.put((byte)0x00);
+        queryBuffer.put((byte)0x00);
+
+        queryBuffer.put((byte)0x00);
+        queryBuffer.put((byte)0x01);
+
+        queryBuffer.put((byte)0x00);
+        queryBuffer.put((byte)0x00);
+
+        queryBuffer.put((byte)0x00);
+        queryBuffer.put((byte)0x00);
+
+        queryBuffer.put((byte)0x00);
+        queryBuffer.put((byte)0x00);
+
+        String[] qname = question.getHostName().split("\\.");
+
+        for (int i = 0 ; i < qname.length; i++) {
+            String a = qname[i];
+            queryBuffer.put((byte)a.length());
+
+            queryBuffer.put(a.getBytes(StandardCharsets.UTF_8));
+        }
+
+        queryBuffer.put((byte)0x00);
+
+        int qtype = question.getRecordType().getCode();
+        int qclass = question.getRecordClass().getCode();
+
+        queryBuffer.putShort((short)qtype);
+        queryBuffer.putShort((short)qclass);
+
+        //int ret = (int)randomID[0] + (int)randomID[1];
+        //int ret = ByteBuffer.wrap(randomID).getInt();
+
+
+        return randomID;
     }
 
     /**
