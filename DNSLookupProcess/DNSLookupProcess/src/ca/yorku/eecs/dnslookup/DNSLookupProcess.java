@@ -1,7 +1,8 @@
 package ca.yorku.eecs.dnslookup;
 
 import java.io.Closeable;
-import java.net.DatagramSocket;
+import java.io.IOException;
+import java.net.*;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -165,10 +166,57 @@ public class DNSLookupProcess implements Closeable {
      * and only those whose record type is NS. If a response is received but there are no nameservers, returns an empty
      * set.
      */
+
     protected Set<ResourceRecord> individualQueryProcess(DNSQuestion question, InetAddress serverAddress) {
 
-        /* TO BE COMPLETED BY THE STUDENT */
+        ByteBuffer queryBuffer = null;
+        Set<ResourceRecord> RR_set = null;
+        int queryID = buildQuery(queryBuffer,question);
+        int timeout = 0;
+        int attempt = 0;
+        listener.beforeSendingQuery(question, serverAddress, queryID);
+
+        DatagramPacket queryPacket = new DatagramPacket(queryBuffer.array(), queryBuffer.array().length, serverAddress, DEFAULT_DNS_PORT);
+
+        try {
+            socket.send(queryPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        ByteBuffer responseBuffer = ByteBuffer.allocate(512);
+        DatagramPacket responsePacket = new DatagramPacket(responseBuffer.array(), responseBuffer.array().length);
+        while (attempt < MAX_QUERY_ATTEMPTS) {
+            while (timeout < SO_TIMEOUT) {
+
+                try {
+                    socket.receive(responsePacket);
+                    int responseID = responseBuffer.getInt(0) + responseBuffer.getInt(1);
+                    int QR = responseBuffer.getInt(2);
+
+                    while (queryID != responseID || QR != 1) {
+                        socket.receive(responsePacket);
+                        responseID = responseBuffer.getInt(0) + responseBuffer.getInt(1);
+                        QR = responseBuffer.getInt(2);
+                    }
+
+                    //Not sure where to go from here...
+                    RR_set = processResponse(responseBuffer);
+
+                    return RR_set;
+
+                } catch (SocketTimeoutException e) {
+                    timeout++;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            attempt++;
+        }
+
         return null;
+
+
     }
 
     /**
